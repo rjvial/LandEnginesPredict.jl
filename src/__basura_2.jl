@@ -62,10 +62,7 @@ pipe = ContinuousEncoder |> iterated_booster
 # First, we define a hyperparameter range for optimization of a
 # (nested) hyperparameter:
 
-max_depth_range = range(pipe,
-                        :(deterministic_iterated_model.model.max_depth),
-                        lower = 1,
-                        upper = 10)
+max_depth_range = range(pipe, :(deterministic_iterated_model.model.max_depth), lower = 1, upper = 10)
 
 # Now we can wrap the pipeline model in an optimization strategy to make
 # it "self-tuning":

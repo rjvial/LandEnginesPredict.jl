@@ -1195,12 +1195,7 @@ tuning = RandomSearch(rng=123)
 # positive unbounded range is sampled using a `Gamma` distribution, by
 # default:
 
-r = range(model,
-          :(logistic_classifier.lambda),
-          lower=0,
-          origin=6,
-          unit=5,
-          scale=:log10)
+r = range(model, :(logistic_classifier.lambda), lower=0, origin=6, unit=5, scale=:log10)
 
 # The `scale` in a range makes no in a `RandomSearch` (unless it is a
 # function) but this will effect later plots but it does effect the
