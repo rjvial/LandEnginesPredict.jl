@@ -47,62 +47,52 @@ features = [
     :log_Valor_Unit_Const_Hab
 ]
 data = data[:, features]
-names(data)
-
-coerce!(data, :Precio => Continuous, :Superficie_Terreno => Continuous, :Superficie_Habitacional => Continuous)
 coerce!(data, :Barrio => Multiclass, :Tipo_Comprador_Simple => Multiclass, :Tipo_Vendedor_Simple => Multiclass, :Trimestre => Multiclass)
 
+names(data)
+schema(data)
 
-hot = OneHotEncoder(drop_last=false)
-mach = MLJ.fit!(machine(hot, data))
-data_oneHot = MLJ.transform(mach, data)
-
-
-
-y, X = unpack(data_oneHot, ==(:log_Precio))
+y, X = unpack(data, ==(:log_Precio))
 pos_train, pos_test = partition(collect(eachindex(y)), 0.8, shuffle=true, rng=5)
 
 
-
-RFR = @load RandomForestRegressor pkg=DecisionTree
-aaa = RFR()
-aaa.n_trees = 1000
-aaa.min_samples_leaf = 1
-tree = machine(aaa, X, y)
-MLJ.fit!(tree, rows=pos_train)
-
-y_train = exp.(y[pos_train])
-y_hat_train = exp.(MLJ.predict(tree, rows=pos_train))
-y_test = exp.(y[pos_test])
-y_hat_test = exp.(MLJ.predict(tree, rows=pos_test))
-residuos_train = y_hat_train .- y_train
-residuos_test = y_hat_test - y_test
-
-errores_train = residuos_train ./ y_train
-errores_test = residuos_test ./ y_test
-
-errores_abs_train = abs.(errores_train)
-errores_abs_test = abs.(errores_test)
-
-RECM_train = sqrt(mean(residuos_train.^2)) # nolint
-RECM_test = sqrt(mean(residuos_test.^2)) # nolint
-
-rms(y[pos_test], MLJ.predict(tree, rows=pos_test))
+XGBR = @load XGBoostRegressor
+pipe = ContinuousEncoder() |> XGBR(num_round=100, eta=.1, num_parallel_tree=100, max_depth=6) 
+mach = machine(pipe, X, y)
+MLJ.fit!(mach, rows=pos_train)
 
 
+# p1 = :(xg_boost_regressor.eta)
+# r1 = range(pipe, p1, lower=-2, upper=-0.5, scale=x->10^x)
 
-coerce!(X, Count => Continuous)
-XGBR = @load XGBoostRegressor 
-bbb = XGBR()
-bbb.num_round = 100
-bbb.eta = .1
-xgbm = machine(bbb, X, y)
-MLJ.fit!(xgbm, rows=pos_train)
+# p2 = :(xg_boost_regressor.max_depth)
+# r2 = range(pipe, p2, lower=2, upper=10)
+
+# p3 = :(xg_boost_regressor.num_parallel_tree)
+# r3 = range(pipe, p3, lower=0, upper=2.5, scale=x->10^x)
+
+# p4 = :(xg_boost_regressor.num_round)
+# r4 = range(pipe, p4, lower=1, upper=2.5, scale=x->10^x)
+
+# tuned_pipe = TunedModel(model=pipe,
+#                                  range=[r1, r2, r3, r4],
+#                                  tuning=RandomSearch(rng=123),
+#                                  measures=rms,
+#                                  resampling=CV(nfolds=6),
+#                                  acceleration=CPUThreads(),
+#                                  n=4)
+
+
+# mach = machine(tuned_pipe, X, y);
+# MLJ.fit!(mach, rows=pos_train)
+
+
+
 
 y_train = exp.(y[pos_train])
-y_hat_train = exp.(MLJ.predict(xgbm, rows=pos_train))
+y_hat_train = exp.(MLJ.predict(mach, rows=pos_train))
 y_test = exp.(y[pos_test])
-y_hat_test = exp.(MLJ.predict(xgbm, rows=pos_test))
+y_hat_test = exp.(MLJ.predict(mach, rows=pos_test))
 residuos_train = y_hat_train .- y_train
 residuos_test = y_hat_test - y_test
 

@@ -485,12 +485,17 @@ models("Classifier")
 models(matching(X, y))
 
 
+for m in models(matching(X, y))
+    if m.prediction_type == :probabilistic
+        println(rpad(m.name, 30), "($(m.package_name))")
+    end
+end
 
 # ### Step 3. Select and instantiate a model
 
 # To load the code defining a new model type we use the `@load` macro:
 
-NeuralNetworkClassifier = @load NeuralNetworkClassifier
+NeuralNetworkClassifier = @load NeuralNetworkClassifier pkg=MLJFlux
 
 # Other ways to load model code are described
 # [here](https://alan-turing-institute.github.io/MLJ.jl/dev/loading_model_code/#Loading-Model-Code).
